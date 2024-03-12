@@ -1,0 +1,10 @@
+- name: Git
+  gather_facts: false
+  hosts: localhost
+  vars_files:
+  - vars/repositories.yml
+  tasks:
+    - name: Add GitHub Actions
+      ansible.builtin.include_tasks: "tasks/add-gh-actions.yml"
+      with_items:
+        - "{{ repositories | unique }}"

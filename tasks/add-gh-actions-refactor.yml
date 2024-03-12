@@ -1,0 +1,46 @@
+---
+- block:
+    - name: Git - Clone
+      ansible.builtin.git:
+        repo: "{{ item }}"
+        dest: "repository"
+        single_branch: true
+        version: feature/actions
+
+    # - name: Git checkout new branch
+    #   ansible.builtin.command: git checkout -b feature/actions
+    #   args:
+    #     chdir: "repository"  
+      
+    - name: Copy .github folder
+      ansible.builtin.copy:
+        src: "templates/angular/.github"
+        dest: "repository"
+
+    - name: Execute the script
+      command: bash  "replace_variables.sh"
+
+    - name: Git - Add
+      ansible.builtin.command: git add .
+      args:
+        chdir: "repository"
+
+    - name: Git - Commit
+      ansible.builtin.command: git commit -m "AB#1 Refactor GitHub Actions"
+      args:
+        chdir: "repository"
+
+    - name: Git - Push
+      ansible.builtin.command: git push --set-upstream origin feature/actions
+      args:
+        chdir: "repository"
+  rescue:
+    - name: Save failed repository
+      ansible.builtin.lineinfile:
+        path: "failed.txt"
+        line: "{{ item }}"
+  always:
+    - name: Delete repository
+      ansible.builtin.file:
+        path: "repository"
+        state: absent

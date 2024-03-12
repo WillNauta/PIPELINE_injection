@@ -1,0 +1,14 @@
+{
+  "repositories": [
+    "git@github.com:BancoBice/AR-acl-core-flexcube-abono.git",
+    "git@github.com:BancoBice/AR-acl-core-flexcube-account.git",
+    "git@github.com:BancoBice/AR-acl-core-flexcube-balance.git",
+    "git@github.com:BancoBice/AR-acl-core-flexcube-cargo.git",
+    "git@github.com:BancoBice/AR-acl-core-flexcube-credit.git",
+    "git@github.com:BancoBice/AR-acl-core-flexcube-cuentas.git",
+    "git@github.com:BancoBice/AR-acl-core-flexcube-cuenta-service.git",
+    "git@github.com:BancoBice/AR-acl-core-flexcube-free.git",
+    "git@github.com:BancoBice/AR-acl-core-flexcube-gatw.git",
+    "git@github.com:BancoBice/AR-acl-core-flexcube-loans.git"
+  ]
+}
