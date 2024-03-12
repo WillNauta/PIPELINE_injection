@@ -1,0 +1,54 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - "develop"
+      - 'feature/**'
+      - release/**
+      - main
+
+jobs:
+  CI:    
+    permissions:
+      id-token: write
+      contents: write
+    uses: coe-devsecops-bice/angular/.github/workflows/nexus-ci.yml@main
+    with:
+      node_version:  ${{ vars.NODE_VERSION }}
+    secrets: inherit
+    
+  angular-build:
+    if: ${{ contains(github.ref, 'feature') || github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/release' }} 
+    needs: [CI]
+    permissions:
+      id-token: write
+      contents: write
+    uses: coe-devsecops-bice/angular/.github/workflows/angular-build.yml@main
+    with:
+      node_version:  ${{ vars.NODE_VERSION }}
+      angular_version: ${{ vars.ANGULAR_VERSION }}
+    secrets: inherit
+
+  deploy-desarrollo:
+    if: ${{ github.ref == 'refs/heads/develop' }} 
+    needs: [angular-build]
+    permissions:
+      id-token: write
+      contents: write
+    uses: coe-devsecops-bice/angular/.github/workflows/nexus-publish.yml@main
+    with:
+      envi: Desarrollo-nexus
+    secrets: inherit
+
+  deploy-certificacion:
+    if: ${{ github.ref == 'refs/heads/release' }} 
+    needs: [angular-build]
+    permissions:
+      id-token: write
+      contents: write
+    uses: coe-devsecops-bice/angular/.github/workflows/nexus-publish.yml@main
+    with:
+      envi: Certificacion-nexus
+    secrets: inherit
+

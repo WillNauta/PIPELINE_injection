@@ -1,0 +1,45 @@
+name: CI Process - Checks 
+on:
+  push:
+    branches:
+      - "develop"
+      - "feature/**"
+
+jobs:
+  BUILD:
+    permissions:
+      id-token: write
+      contents: write
+    uses: coe-devsecops-bice/Maven/.github/workflows/build-maven.yml@main
+    with:
+      APPNAME: ${{ vars.APPNAME }}
+      SONAR_HOST: ${{ vars.SONAR_HOST }}
+      PROJECTKEY:  ${{ vars.PROJECTKEY }}
+    secrets: inherit  
+  PUSHIMAGE:
+    needs: BUILD
+    if:  ${{ startsWith(github.ref, 'refs/heads/feature') || github.ref == 'refs/heads/develop' }}
+    permissions:
+      id-token: write
+      contents: write
+    uses: coe-devsecops-bice/Maven/.github/workflows/pushimage.yml@main
+    with:
+      APPNAME: ${{ vars.APPNAME }}
+      PROJECTKEY:  ${{ vars.PROJECTKEY }}
+    secrets: inherit
+  
+  CD-DEV:
+    if:  ${{ github.ref == 'refs/heads/develop' }}
+    needs: [PUSHIMAGE]
+    permissions:
+      id-token: write
+      contents: write
+    uses: coe-devsecops-bice/Maven/.github/workflows/cd.yml@main
+    with:
+      envi: dev  
+      gcp-region: ${{ vars[format('{0}_REGION_{1}', vars.PROJECT, 'DEV')] }} 
+      gcp-project-id: ${{ vars[format('{0}_PROJECTID_{1}', vars.PROJECT, 'DEV')] }} 
+      bastion-host: ${{ vars[format('{0}_PIVOT_{1}', vars.PROJECT, 'DEV')] }} 
+      bastion-zone: ${{ vars[format('{0}_ZONE_{1}', vars.PROJECT, 'DEV')] }} 
+      cluster-name: ${{ vars[format('{0}_CLUSTERID_{1}', vars.PROJECT, 'DEV')] }} 
+    secrets: inherit

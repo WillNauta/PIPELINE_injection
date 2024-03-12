@@ -1,0 +1,73 @@
+name: "Build & deploy"
+
+on:  
+  push:
+    branches:
+      - "main"
+      - 'master'
+      - 'release/**'
+
+jobs:
+  CI:
+    permissions:
+      id-token: write
+      contents: write
+    uses: coe-devsecops-bice/angular/.github/workflows/docker-build.yml@main
+    secrets: inherit
+  
+  PUSHIMAGE:
+    if: ${{ contains(github.ref, 'release') }} 
+    needs: [CI]
+    permissions:
+      id-token: write
+      contents: write
+    uses: coe-devsecops-bice/angular/.github/workflows/pushimage.yml@main
+    secrets: inherit
+
+  CD-QA:
+    needs: PUSHIMAGE
+    if: ${{ contains(github.ref, 'release') }} 
+    permissions:
+      id-token: write
+      contents: write
+    uses: coe-devsecops-bice/angular/.github/workflows/deploy-gke.yml@main
+    with:
+      envi: qa  
+      gcp-region: ${{ vars[format('{0}_REGION_{1}', vars.PROJECT, 'QA')] }} 
+      gcp-project-id: ${{ vars[format('{0}_PROJECTID_{1}', vars.PROJECT, 'QA')] }} 
+      bastion-host: ${{ vars[format('{0}_PIVOT_{1}', vars.PROJECT, 'QA')] }} 
+      bastion-zone: ${{ vars[format('{0}_ZONE_{1}', vars.PROJECT, 'QA')] }} 
+      cluster-name: ${{ vars[format('{0}_CLUSTERID_{1}', vars.PROJECT, 'QA')] }} 
+    secrets: inherit  
+
+  CD-PREPROD:
+    needs: [CD-QA]
+    if: ${{ contains(github.ref, 'release') }} 
+    permissions:
+      id-token: write
+      contents: write
+    uses: coe-devsecops-bice/angular/.github/workflows/deploy-gke.yml@main
+    with:
+      envi: pre-prod
+      gcp-region: ${{ vars[format('{0}_REGION_{1}', vars.PROJECT, 'PREPROD')] }} 
+      gcp-project-id: ${{ vars[format('{0}_PROJECTID_{1}', vars.PROJECT, 'PREPROD')] }} 
+      bastion-host: ${{ vars[format('{0}_PIVOT_{1}', vars.PROJECT, 'PREPROD')] }} 
+      bastion-zone: ${{ vars[format('{0}_ZONE_{1}', vars.PROJECT, 'PREPROD')] }} 
+      cluster-name: ${{ vars[format('{0}_CLUSTERID_{1}', vars.PROJECT, 'PREPROD')] }}
+    secrets: inherit
+
+  CD-PROD:
+    needs: [CD-PREPROD]
+    if: ${{ contains(github.ref, 'release') }}
+    permissions:
+      id-token: write
+      contents: write
+    uses: coe-devsecops-bice/angular/.github/workflows/deploy-gke.yml@main
+    with:
+      envi: prod
+      gcp-region: ${{ vars[format('{0}_REGION_{1}', vars.PROJECT, 'PROD')] }} 
+      gcp-project-id: ${{ vars[format('{0}_PROJECTID_{1}', vars.PROJECT, 'PROD')] }} 
+      bastion-host: ${{ vars[format('{0}_PIVOT_{1}', vars.PROJECT, 'PROD')] }} 
+      bastion-zone: ${{ vars[format('{0}_ZONE_{1}', vars.PROJECT, 'PROD')] }} 
+      cluster-name: ${{ vars[format('{0}_CLUSTERID_{1}', vars.PROJECT, 'PROD')] }}
+    secrets: inherit 

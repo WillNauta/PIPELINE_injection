@@ -1,0 +1,41 @@
+name: CI y CD Pipeline Dev 
+on:  
+  push:
+    paths-ignore:
+      - 'README.md'
+    branches:
+      - "develop"
+      - 'feature/**'
+#
+jobs:
+  CI:
+    permissions:
+      id-token: write
+      contents: write
+    uses: coe-devsecops-bice/nestjs_bff_docker/.github/workflows/ci.yml@main
+    secrets: inherit
+    
+  PUSHIMAGE:
+    if: ${{ contains(github.ref, 'feature') || github.ref == 'refs/heads/develop' }} 
+    needs: [CI]
+    permissions:
+      id-token: write
+      contents: write
+    uses: coe-devsecops-bice/nestjs_bff_docker/.github/workflows/pushimage.yml@main
+    secrets: inherit
+  CD-DEV:
+    if: ${{ github.ref == 'refs/heads/develop' }} 
+    needs: [PUSHIMAGE]
+    permissions:
+      id-token: write
+      contents: write
+    uses: coe-devsecops-bice/nestjs_bff_docker/.github/workflows/cd.yml@main
+    with:
+      envi: dev  
+      gcp-region: ${{ vars[format('HBP_REGION_{0}', 'DEV')] }} 
+      gcp-project-id: ${{ vars[format('HBP_PROJECTID_{0}', 'DEV')] }}
+      bastion-host: ${{ vars[format('HBP_PIVOT_{0}', 'DEV')] }}
+      bastion-zone: ${{ vars[format('HBP_ZONE_{0}', 'DEV')] }}
+      cluster-name: ${{ vars[format('HBP_CLUSTERID_{0}', 'DEV')] }}
+    secrets: inherit
+  

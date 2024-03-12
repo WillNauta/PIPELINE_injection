@@ -1,0 +1,36 @@
+name: Apigee Deploy Test
+
+on: 
+  workflow_dispatch:
+    inputs:
+      environment:
+        type: choice
+        description: Ambiente a desplegar?
+        options: 
+        - dev
+        - qa
+        - pre-prod
+        - prod
+
+jobs:
+  deploy-apigee-dev:
+    if: ${{ github.ref == 'refs/heads/develop' &&  github.event.inputs.environment  == 'dev' }}
+    uses: coe-devsecops-bice/Apigee/.github/workflows/CI-CD-Ambiente-dev.yml@main
+    with: 
+      AMBIENTE: ${{ github.event.inputs.environment }}
+    secrets: inherit
+
+  deploy-apigee-qa:
+    if: ${{ (contains(github.ref, 'release') || contains(github.ref, 'bugfix') || contains(github.ref, 'hotfix')) &&  github.event.inputs.environment  == 'qa' || github.event.inputs.environment  == 'pre-prod'}}
+    uses: coe-devsecops-bice/Apigee/.github/workflows/CI-CD-Ambientes-previos.yml@main
+    with: 
+      AMBIENTE: ${{ github.event.inputs.environment }}
+    secrets: inherit
+
+  deploy-apigee-prod:
+    if: ${{ (contains(github.ref, 'release') || contains(github.ref, 'bugfix') || contains(github.ref, 'hotfix')) &&  github.event.inputs.environment  == 'prod' }}
+    uses: coe-devsecops-bice/Apigee/.github/workflows/CI-CD-Ambiente-prod.yml@main
+    with: 
+      AMBIENTE: ${{ github.event.inputs.environment }}
+    secrets: inherit
+      

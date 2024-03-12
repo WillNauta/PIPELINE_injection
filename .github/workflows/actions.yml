@@ -1,0 +1,73 @@
+name: Inject Actions
+
+on:
+  workflow_dispatch:
+
+jobs:
+  configurations:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout del código
+      uses: actions/checkout@v4
+
+    - uses: webfactory/ssh-agent@v0.9.0
+      with:
+         ssh-private-key: ${{ secrets.PRIVAYE_SSH }}
+
+    - run: git config --global user.email "wfestupinanmex@bice.cl"
+    - run: git config --global user.name "Bice"
+      
+    # - name: Configurar entorno de Python
+    #   uses: actions/setup-python@v2
+    #   with:
+    #     python-version: 3.11
+
+    # - name: Instalar dependencias de Ansible
+    #   run: |
+    #     pip install ansible
+
+    # - name: Ejecutar playbook de Ansible
+    #   run: |
+    #     ansible-playbook -i "localhost," main.yml
+    #   env:
+    #     github_token: ${{ secrets.GH_CHECKOUT_TOKEN }}
+   
+    - name: Run playbook
+      uses: dawidd6/action-ansible-playbook@v2
+      with:
+        # Required, playbook filepath
+        playbook: main.yml
+        # Optional, directory where playbooks live
+        directory: ./
+        # Optional, ansible configuration file content (ansible.cfg)
+        configuration: |
+          [defaults]
+          callbacks_enabled = ansible.posix.profile_tasks, ansible.posix.timer
+          stdout_callback = yaml
+          nocows = false
+        # Optional, SSH private key
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        # Optional, literal inventory file contents
+        inventory: |
+          [all]
+          github.com
+
+        #   [group1]
+        #   example.com
+        # Optional, SSH known hosts file content
+        known_hosts: |
+          github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl
+        # # Optional, encrypted vault password
+        # # vault_password: ${{secrets.VAULT_PASSWORD}}
+        # # Optional, galaxy requirements filepath
+        # requirements: galaxy-requirements.yml
+        # # Optional, additional flags to pass to ansible-playbook
+        options: |
+          --inventory .hosts
+          --verbose
+    - name: read file
+      run: cat failed.txt
+        
+  
+          
+        

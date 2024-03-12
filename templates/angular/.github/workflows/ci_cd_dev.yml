@@ -1,0 +1,41 @@
+name: "Build & deploy Dev"
+
+on:
+  push:
+    branches:
+        - 'develop'
+        - 'feature/**'
+jobs:
+  CI:
+    permissions:
+      id-token: write
+      contents: write
+    uses: coe-devsecops-bice/angular/.github/workflows/docker-build.yml@main
+    with:
+      node_version: 14
+    secrets: inherit
+  
+  PUSHIMAGE:
+    if: ${{ github.ref == 'refs/heads/develop' }} 
+    needs: [CI]
+    permissions:
+      id-token: write
+      contents: write
+    uses: coe-devsecops-bice/angular/.github/workflows/pushimage.yml@main
+    secrets: inherit
+  
+  CD-DEV:
+    needs: PUSHIMAGE
+    if: ${{ github.ref == 'refs/heads/develop' }} 
+    permissions:
+      id-token: write
+      contents: write
+    uses: coe-devsecops-bice/angular/.github/workflows/deploy-gke.yml@main
+    with:
+      envi: dev  
+      gcp-region: ${{ vars[format('{0}_REGION_{1}', vars.PROJECT, 'DEV')] }} 
+      gcp-project-id: ${{ vars[format('{0}_PROJECTID_{1}', vars.PROJECT, 'DEV')] }} 
+      bastion-host: ${{ vars[format('{0}_PIVOT_{1}', vars.PROJECT, 'DEV')] }} 
+      bastion-zone: ${{ vars[format('{0}_ZONE_{1}', vars.PROJECT, 'DEV')] }} 
+      cluster-name: ${{ vars[format('{0}_CLUSTERID_{1}', vars.PROJECT, 'DEV')] }} 
+    secrets: inherit

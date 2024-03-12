@@ -1,0 +1,75 @@
+name: CI y CD pipeline
+on:
+  push:    
+    branches:
+      - "main"
+      - 'master'
+      - 'release/**'
+
+#################
+jobs:
+  CI:
+    permissions:
+      id-token: write
+      contents: write
+    uses: coe-devsecops-bice/Node.js/.github/workflows/ci.yml@main
+    with:
+      node_version: ${{ vars.NODE_VERSION }}
+    secrets: inherit
+    
+  PUSHIMAGE:
+    if: ${{contains(github.ref, 'release')}} 
+    needs: [CI]
+    permissions:
+      id-token: write
+      contents: write
+    uses: coe-devsecops-bice/Node.js/.github/workflows/pushimage.yml@main
+    secrets: inherit
+
+  CD-QA:
+    if: ${{contains(github.ref, 'release')}} 
+    needs: [PUSHIMAGE]
+    permissions:
+      id-token: write
+      contents: write
+    uses: coe-devsecops-bice/Node.js/.github/workflows/cd.yml@main
+    with:
+      envi: qa  
+      gcp-region: ${{ vars[format('HBP_REGION_{0}', 'QA')] }} 
+      gcp-project-id: ${{ vars[format('HBP_PROJECTID_{0}', 'QA')] }}
+      bastion-host: ${{ vars[format('HBP_PIVOT_{0}', 'QA')] }}
+      bastion-zone: ${{ vars[format('HBP_ZONE_{0}', 'QA')] }}
+      cluster-name: ${{ vars[format('HBP_CLUSTERID_{0}', 'QA')] }}
+    secrets: inherit  
+
+  CD-PREPROD:
+    if: ${{contains(github.ref, 'feature')}} 
+    needs: [CD-QA]
+    permissions:
+      id-token: write
+      contents: write
+    uses: coe-devsecops-bice/Node.js/.github/workflows/cd.yml@main
+    with:
+      envi: pre
+      gcp-region: ${{ vars[format('HBP_REGION_{0}', 'PREPROD')] }} 
+      gcp-project-id: ${{ vars[format('HBP_PROJECTID_{0}', 'PREPROD')] }}
+      bastion-host: ${{ vars[format('HBP_PIVOT_{0}', 'PREPROD')] }}
+      bastion-zone: ${{ vars[format('HBP_ZONE_{0}', 'PREPROD')] }}
+      cluster-name: ${{ vars[format('HBP_CLUSTERID_{0}', 'PREPROD')] }}
+    secrets: inherit
+
+  CD-PROD:
+    if: ${{contains(github.ref, 'feature')}} 
+    needs: [CD-PREPROD]
+    permissions:
+      id-token: write
+      contents: write
+    uses: coe-devsecops-bice/Node.js/.github/workflows/cd.yml@main
+    with:
+      envi: prod
+      gcp-region: ${{ vars[format('HBP_REGION_{0}', 'PROD')] }} 
+      gcp-project-id: ${{ vars[format('HBP_PROJECTID_{0}', 'PROD')] }}
+      bastion-host: ${{ vars[format('HBP_PIVOT_{0}', 'PROD')] }}
+      bastion-zone: ${{ vars[format('HBP_ZONE_{0}', 'PROD')] }}
+      cluster-name: ${{ vars[format('HBP_CLUSTERID_{0}', 'PROD')] }}
+    secrets: inherit

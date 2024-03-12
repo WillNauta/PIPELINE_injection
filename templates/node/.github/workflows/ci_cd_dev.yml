@@ -1,0 +1,42 @@
+name: CI y CD pipeline Dev
+on:
+  push:
+    paths-ignore:
+      - 'README.md'
+    branches:
+      - "develop"
+      - 'feature/**'
+
+jobs:
+  CI:    
+    permissions:
+      id-token: write
+      contents: write
+    uses: coe-devsecops-bice/Node.js/.github/workflows/ci.yml@main
+    with:
+      node_version: ${{ vars.NODE_VERSION }}
+    secrets: inherit
+    
+  PUSHIMAGE:
+    if: ${{ github.ref == 'refs/heads/develop' }} 
+    needs: [CI]
+    permissions:
+      id-token: write
+      contents: write
+    uses: coe-devsecops-bice/Node.js/.github/workflows/pushimage.yml@main
+    secrets: inherit
+  CD-DEV:
+    if: ${{ github.ref == 'refs/heads/develop' }} 
+    needs: [PUSHIMAGE]
+    permissions:
+      id-token: write
+      contents: write
+    uses: coe-devsecops-bice/Node.js/.github/workflows/cd.yml@main
+    with:
+      envi: dev  
+      gcp-region: ${{ vars.HBP_REGION_DEV }} 
+      gcp-project-id: ${{ vars.HBP_PROJECTID_DEV }}
+      bastion-host: ${{ vars.HBP_PIVOT_DEV }}
+      bastion-zone: ${{ vars.HBP_ZONE_DEV }}
+      cluster-name: ${{ vars.HBP_CLUSTERID_DEV }}
+    secrets: inherit

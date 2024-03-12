@@ -1,0 +1,78 @@
+name: CD Process 
+on:
+  push:
+    branches:
+      - "release/**"
+      - "main"
+
+jobs:
+  BUILD:
+    permissions:
+      id-token: write
+      contents: write
+    uses: coe-devsecops-bice/Maven/.github/workflows/build-maven.yml@feature/template
+    with:
+      APPNAME: ${{ vars.APPNAME }}
+      SONAR_HOST: ${{ vars.SONAR_HOST }}
+      PROJECTKEY:  ${{ vars.PROJECTKEY }}
+    secrets: inherit  
+  PUSHIMAGE:
+    needs: BUILD
+    if:  ${{ github.ref == 'refs/heads/release' }}
+    permissions:
+      id-token: write
+      contents: write
+    uses: coe-devsecops-bice/Maven/.github/workflows/pushimage.yml@feature/template
+    with:
+      APPNAME: ${{ vars.APPNAME }}
+      PROJECTKEY:  ${{ vars.PROJECTKEY }}
+    secrets: inherit
+  
+  CD-QA:
+    if:  ${{ github.ref == 'refs/heads/release' }}
+    needs: [PUSHIMAGE]
+    permissions:
+      id-token: write
+      contents: write
+    uses: coe-devsecops-bice/Maven/.github/workflows/cd.yml@main
+  
+    with:
+      envi: qa  
+      gcp-region: ${{ vars[format('{0}_REGION_{1}', vars.PROJECT, 'QA')] }} 
+      gcp-project-id: ${{ vars[format('{0}_PROJECTID_{1}', vars.PROJECT, 'QA')] }} 
+      bastion-host: ${{ vars[format('{0}_PIVOT_{1}', vars.PROJECT, 'QA')] }} 
+      bastion-zone: ${{ vars[format('{0}_ZONE_{1}', vars.PROJECT, 'QA')] }} 
+      cluster-name: ${{ vars[format('{0}_CLUSTERID_{1}', vars.PROJECT, 'QA')] }} 
+    secrets: inherit  
+  
+  CD-PREPROD:
+    if:  ${{ github.ref == 'refs/heads/release' }}
+    needs: [PUSHIMAGE]
+    permissions:
+      id-token: write
+      contents: write
+    uses: coe-devsecops-bice/Maven/.github/workflows/cd.yml@main
+    with:
+      envi: pre-prod
+      gcp-region: ${{ vars[format('{0}_REGION_{1}', vars.PROJECT, 'PREPROD')] }} 
+      gcp-project-id: ${{ vars[format('{0}_PROJECTID_{1}', vars.PROJECT, 'PREPROD')] }} 
+      bastion-host: ${{ vars[format('{0}_PIVOT_{1}', vars.PROJECT, 'PREPROD')] }} 
+      bastion-zone: ${{ vars[format('{0}_ZONE_{1}', vars.PROJECT, 'PREPROD')] }} 
+      cluster-name: ${{ vars[format('{0}_CLUSTERID_{1}', vars.PROJECT, 'PREPROD')] }}
+    secrets: inherit
+  
+  CD-PROD:
+    if:  ${{ github.ref == 'refs/heads/release' }}
+    needs: [PUSHIMAGE]
+    permissions:
+      id-token: write
+      contents: write
+    uses: coe-devsecops-bice/Maven/.github/workflows/cd.yml@main
+    with:
+      envi: prod
+      gcp-region: ${{ vars[format('{0}_REGION_{1}', vars.PROJECT, 'PROD')] }} 
+      gcp-project-id: ${{ vars[format('{0}_PROJECTID_{1}', vars.PROJECT, 'PROD')] }} 
+      bastion-host: ${{ vars[format('{0}_PIVOT_{1}', vars.PROJECT, 'PROD')] }} 
+      bastion-zone: ${{ vars[format('{0}_ZONE_{1}', vars.PROJECT, 'PROD')] }} 
+      cluster-name: ${{ vars[format('{0}_CLUSTERID_{1}', vars.PROJECT, 'PROD')] }}
+    secrets: inherit 
